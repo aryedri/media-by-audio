@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title> player by audio</title>
+    <meta charset="UTF-8">
+    <meta name="description" content="player by audio">
+    <meta name="keywords" content="">
+    <meta name="author" content="Arye Edri">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        .options-sound {
+            display: none;
+        }
+
+        .img-audio:hover .options-sound {
+            grid-area: footer;
+            height: 54px;
+            display: block;
+            background-color: blue;
+        }
+
+        .img-audio {
+            max-width: 520px;
+            height: 280px;
+            background-color: black;
+            background-repeat: no-repeat;
+            background-attachment: inherit;
+            background-size: contain;
+            background-position: center bottom;
+            border: 0px solid black;
+            display: grid;
+            grid-template-areas:
+                'main'
+                'footer';
+        }
+
+        .main-img {
+            grid-area: main;
+            height: 226px;
+            max-width: auto;
+            background-repeat: no-repeat;
+            background-attachment: inherit;
+            background-size: contain;
+            background-position: center bottom;
+            
+        }
+
+        #navbar_ea {
+            background-color: white;
+            max-width: auto;
+            padding-bottom: 3px;
+        }
+
+        #deafultBar {
+            max-width: auto;
+            position: relative;
+            background-color: #606060;
+            height: 15px;
+        }
+
+        #progressBar {
+            position: absolute;
+            height: 15px;
+            background-color: blue;
+            width: 0px;
+        }
+
+        #playButton {
+            background-image: rgb(250, 250, 250);
+            border: none;
+            height: 32px;
+            width: 32px;
+            background-image: url(https://img.icons8.com/android/24/000000/play.png);
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+
+        #muteButton {
+            background-image: rgb(250, 250, 250);
+            border: none;
+            height: 32px;
+            width: 32px;
+            background-image: url(https://img.icons8.com/metro/26/000000/audio.png);
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+
+        #fullscreennormal{
+            background-image: rgb(250, 250, 250);
+            border: none;
+            height: 32px;
+            width: 32px;
+            background-image: url(https://img.icons8.com/small/26/000000/full-screen.png);
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+
+        #muteButton:active, #fullscreennormal
+        #playButton:active {
+            position: relative;
+            top: 2px;
+        }
+        #buttons{
+            display: flex;
+            flex-wrap: wrap;
+            font-size: 20px;
+        }
+        .center_bar{
+            flex-grow: 1;
+        }
+    </style>
+
+</head>
+
+<body>
+    <div class="img-audio" id="img-audio" aria-label='images change by audio'>
+        <div class="main-img" id="main-img"></div>
+        <div class="options-sound">
+            <audio id="mytrack">
+                <source src="https://d1490khl9dq1ow.cloudfront.net/music/mp3preview/rising-up_MkRGmUBO.mp3"
+                    type="audio/mpeg">
+                <strong>Your browser does not support the audio element.</strong>
+            </audio>
+            <nav id="navbar_ea">
+                <div id="deafultBar">
+                    <div id="progressBar"> </div>
+                </div>
+                <div id="buttons">
+                    <div class="bar_start">
+                        <button type="button" id="playButton"></button>
+                        <button type="button" id="muteButton"></button>
+                        <span id="currentTime">0:00</span>/<span id="fullDuration">0:00</span>
+                    </div>
+                    <div class="center_bar"></div>
+                    <div class="end_bar"><button type="button" id="fullscreennormal"></button></div>  
+                </div>
+            </nav>
+        </div>
+    </div>
+
+    <script>
+        var imgaudio = document.getElementById('img-audio');
+        var vid = document.getElementById("mytrack");//before myAudio  
+
+        var mapPicture = new Map();
+        mapPicture.set(3, ['start', 'https://images.pexels.com/photos/293983/pexels-photo-293983.jpeg?auto=format%2Ccompress&cs=tinysrgb&dpr=2&h=650&w=940']);
+        mapPicture.set(5, ['2', 'https://www.w3schools.com/w3images/workbench.jpg']);
+        mapPicture.set(33, ['3', 'https://www.w3schools.com/w3images/coffee.jpg']);
+        mapPicture.set(10, ['4', 'https://www.w3schools.com/w3images/sound.jpg']);
+        mapPicture.set(8, ['5', 'https://picjumbo.com/wp-content/uploads/handful-of-blueberries-2210x1473.jpg']);
+
+        if (mapPicture.has(0) == false) {
+            if (mapPicture.size == 0) mapPicture.set(0, ['no img for this audio', '']);
+            else mapPicture.set(0, ['undefined frame in time 0mls to time choosen', '']);
+        }
+
+        var indexCurrentImg;
+        let arraykeys = [...mapPicture.keys()];
+        var arraysortkey = arraykeys.sort(function (a, b) { return a - b })
+
+        function findPrevValV(num, arraykeys) { //return index
+            var size = arraykeys.length;
+            if (size == 0) return -1;
+
+            if (num < arraykeys[0]) return -2; // undefined frame in time 0mls to time choosen
+            if (num >= arraykeys[0] && num < arraykeys[1]) return 0;
+            p = 0;
+            while (arraykeys[p] < num && p != size - 1) {
+                if (num >= arraykeys[p] && num < arraykeys[p + 1]) return p;
+                p++;
+            }
+
+            return p;
+        }
+
+        // Assign an ontimeupdate event to the video element, and execute a function if the current playback position has changed
+        vid.ontimeupdate = function () { myFunction() };
+
+        function myFunction() {
+            var sizeF = 6;
+            var minutes, seconds, audioTime;
+            audioTime = vid.currentTime;
+            minutes = parseInt(audioTime / 60, 10);
+            seconds = parseInt(audioTime % 60);
+            timeChangeImg();
+        }
+
+        function timeChangeImg() {
+            var audioTime = vid.currentTime;
+            var indexNow = arraysortkey[findPrevValV(audioTime, arraysortkey)];
+            if (indexCurrentImg != indexNow) {
+                if (indexCurrentImg => 0) {
+                    indexCurrentImg = indexNow;
+                    altImg = mapPicture.get(indexCurrentImg)[0];
+                    srcImg = mapPicture.get(indexCurrentImg)[1];
+                    imgaudio.style.backgroundImage = "url(" + srcImg + ")";
+                    document.getElementById('img-audio').setAttribute('aria-label', altImg);
+                }
+            }
+        }
+
+        function init() {
+            var numImg = findPrevValV(0, arraysortkey);
+
+            if (numImg => 0) {
+                indexCurrentImg = arraysortkey[numImg];
+                altImg = mapPicture.get(indexCurrentImg)[0];
+                srcImg = mapPicture.get(indexCurrentImg)[1];
+                imgaudio.style.backgroundImage = "url(" + srcImg + ")";
+                document.getElementById('img-audio').setAttribute('aria-label', altImg);	
+            }
+        }
+        init();
+
+        // options of footer
+        var mytrack = document.getElementById('mytrack');
+        var playButton = document.getElementById('playButton');
+        var muteButton = document.getElementById('muteButton');
+        var screenButton = document.getElementById('fullscreennormal');
+        var fullduration = document.getElementById('fullDuration');
+        var currentTime = document.getElementById('currentTime');
+        var bar = document.getElementById('deafultBar');
+        // search event route screen
+        
+        playButton.addEventListener('click', playOrPause, false);
+        muteButton.addEventListener('click', muteOrUnmute, false);
+        screenButton.addEventListener('click', fullOrNormal, false);
+        bar.addEventListener('click', clickedBar, false);
+        window.addEventListener("resize", changesize);
+
+        var fullTime = mytrack.duration;
+        var minutes = Math.floor(fullTime / 60);
+        var progressBar = document.getElementById('progressBar');
+
+        var barSize = bar.offsetWidth;
+
+        var fullTime = '0:00';
+
+        fullduration.innerHTML = fullTime;
+
+        function playOrPause() {
+            if (!mytrack.paused && !mytrack.ended) {
+                mytrack.pause();
+                playButton.style.backgroundImage = 'url(https://img.icons8.com/android/24/000000/pause.png)';
+                window.clearInterval(updateTime);
+            } else {
+                mytrack.play();
+                playButton.style.backgroundImage = 'url(https://img.icons8.com/android/24/000000/play.png)';
+                updateTime = setInterval(update, 500);
+                // for full time
+                var fullMinutes = parseInt(mytrack.duration / 60);
+                var fullSeconds = parseInt(mytrack.duration % 60);
+                if (fullSeconds < 10) {
+                    fullduration.innerHTML = fullMinutes + ':0' + fullSeconds;
+                } else {
+                    fullduration.innerHTML = fullMinutes + ':' + fullSeconds;
+                }
+            }
+        }
+
+        function muteOrUnmute() {
+            if (mytrack.muted == true) {
+                mytrack.muted = false;
+                muteButton.style.backgroundImage = 'url(https://img.icons8.com/metro/26/000000/audio.png)';
+            }
+            else {
+                mytrack.muted = true;
+                muteButton.style.backgroundImage = 'url(https://img.icons8.com/metro/26/000000/no-audio.png)';
+            }
+        }
+
+        function update() {
+            if (!mytrack.ended) {
+                var playMinutes = parseInt(mytrack.currentTime / 60);
+                var playSeconds = parseInt(mytrack.currentTime % 60);
+                if (playSeconds < 10) {
+                    currentTime.innerHTML = playMinutes + ':0' + playSeconds;
+                } else {
+                    currentTime.innerHTML = playMinutes + ':' + playSeconds;
+                }
+                var size = parseInt(mytrack.currentTime * bar.offsetWidth / mytrack.duration);
+                progressBar.style.width = size + 'px';
+            } else {
+                currentTime.innerHTML = "0.00";
+                playButton.style.backgroundImage = 'url(https://img.icons8.com/android/24/000000/play.png)';
+                progressBar.style.width = "0px";
+                window.clearInterval(updateTime);
+            }
+        }
+
+        function clickedBar(e) {
+            if (!mytrack.ended) {
+                var mouseX = e.pageX - bar.offsetLeft;
+                var newTime = mouseX * mytrack.duration / bar.offsetWidth;
+                mytrack.currentTime = newTime;
+                progressBar.style.width = mouseX + 'px';
+            }
+        }
+
+        var elem = document.getElementById('img-audio');
+        var sizebody = document.body;
+        var needhight = 0;
+        var isfullscreen = 0;
+
+        function openFullscreen() {
+            isfullscreen = 1;
+            needhight = window.innerHeight - 104;
+            imgaudio = document.getElementById('main-img');
+            document.getElementById('main-img').style.height = needhight + "px";
+            document.getElementById('img-audio').style.backgroundImage = '';
+            var audioTime = vid.currentTime;
+            var indexNow = arraysortkey[findPrevValV(audioTime, arraysortkey)];
+            altImg = mapPicture.get(indexNow)[0];
+            srcImg = mapPicture.get(indexNow)[1];
+            imgaudio.style.backgroundImage = "url(" + srcImg + ")";
+            document.getElementById('img-audio').setAttribute('aria-label', altImg);
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen();
+            } else if (elem.mozRequestFullScreen) { /* Firefox */
+                elem.mozRequestFullScreen();
+                document.getElementsByClassName('main-img').style.height = needhight;
+            } else if (elem.webkitRequestFullscreen) { /* Chrome, Safari & Opera */
+                elem.webkitRequestFullscreen();
+                document.getElementsByClassName('main-img').style.height = needhight;
+            } else if (elem.msRequestFullscreen) { /* IE/Edge */
+                elem.msRequestFullscreen();
+                document.getElementsByClassName('main-img').style.height = needhight;
+            }
+        }
+
+        function closeFullscreen() {
+            isfullscreen = 0;
+            imgaudio = document.getElementById('img-audio');
+            document.getElementById('main-img').style.height = "226px";
+            document.getElementById('main-img').style.backgroundImage = '';
+            var audioTime = vid.currentTime;
+            var indexNow = arraysortkey[findPrevValV(audioTime, arraysortkey)];
+            altImg = mapPicture.get(indexNow)[0];
+            srcImg = mapPicture.get(indexNow)[1];
+            imgaudio.style.backgroundImage = "url(" + srcImg + ")";
+            document.getElementById('img-audio').setAttribute('aria-label', altImg);
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.mozCancelFullScreen) {
+                document.mozCancelFullScreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            } else if (document.msExitFullscreen) {
+                document.msExitFullscreen();
+            }
+        }
+
+        function fullOrNormal() {
+           if (!isfullscreen) {
+            openFullscreen();
+            screenButton.style.backgroundImage = 'url(https://img.icons8.com/small/26/000000/normal-screen.png)';
+           }else{
+            closeFullscreen();
+            var size = parseInt(mytrack.currentTime * bar.offsetWidth / mytrack.duration);
+            progressBar.style.width = size + 'px';
+            screenButton.style.backgroundImage = 'url(https://img.icons8.com/small/26/000000/full-screen.png)'; 
+           } 
+        }
+
+        function changesize() {
+           if (isfullscreen != 0) {
+                needhight = window.innerHeight - 104;
+                document.getElementById('main-img').style.height = needhight + "px";
+           } 
+        }
+    </script>
+
+</body>
+
+</html>
